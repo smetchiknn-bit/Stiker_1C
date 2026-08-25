@@ -275,7 +275,9 @@ export function ErrorCard({ error, onReset }: { error: ErrorInfo; onReset: () =>
         </span>
         <div className="min-w-0">
           <p className="font-display text-lg tracking-wide text-bad">{error.title}</p>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">{error.detail}</p>
+          <p className="mt-1.5 whitespace-pre-line break-words text-[13.5px] leading-relaxed text-ink-soft">
+            {error.detail}
+          </p>
         </div>
       </div>
       <button

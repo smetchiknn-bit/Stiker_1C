@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type * as ExcelJS from "exceljs";
 import { getExcelJS } from "./lib/excel";
 import { analyzeDonor, processWorkbook } from "./lib/processor";
@@ -14,7 +14,56 @@ import { LogoMark, IconGlobe, IconTree, IconSigma, IconPaint } from "./component
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
+export function errText(e: unknown): string {
+  const msg = (e as any)?.message ? String((e as any).message) : String(e ?? "Неизвестная ошибка");
+  const stack = (e as any)?.stack ? String((e as any).stack) : "";
+  const tail = stack && !stack.includes(msg) ? "\n" + stack.split("\n").slice(1, 4).join("\n") : "";
+  return (msg + tail).slice(0, 600);
+}
+
+/* страховка от «белого экрана»: любая ошибка рендера показывается явно */
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err: string | null }> {
+  state = { err: null as string | null };
+  static getDerivedStateFromError(e: unknown) {
+    return { err: errText(e) };
+  }
+  componentDidCatch(e: unknown) {
+    // eslint-disable-next-line no-console
+    console.error("СВОД→1С: ошибка интерфейса", e);
+  }
+  render() {
+    if (this.state.err) {
+      return (
+        <div className="grid min-h-screen place-items-center px-6">
+          <div className="max-w-xl rounded-xl border-2 border-bad/40 bg-card p-7">
+            <p className="font-display text-lg tracking-wide text-bad">Интерфейс споткнулся</p>
+            <p className="mt-2 break-words font-mono text-[12.5px] leading-relaxed text-ink-soft">
+              {this.state.err}
+            </p>
+            <button
+              type="button"
+              onClick={() => location.reload()}
+              className="mt-5 rounded-lg bg-ink px-5 py-2.5 font-display text-[13px] tracking-wide text-brand transition-colors hover:bg-blue-deep"
+            >
+              Перезапустить приложение
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppInner />
+    </ErrorBoundary>
+  );
+}
+
+function AppInner() {
   const [stage, setStage] = useState<Stage>("idle");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
@@ -59,9 +108,11 @@ export default function App() {
     try {
       out = await processWorkbook(wbRef.current!, a);
     } catch (e: any) {
+      // eslint-disable-next-line no-console
+      console.error("СВОД→1С: сбой при обработке файла", e);
       setError({
         title: "Сбой при обработке",
-        detail: e?.message ? String(e.message) : "Структура листа отличается от ожидаемой. Проверьте донор и повторите.",
+        detail: errText(e) + "\n\nЕсли файл точно содержит лист «Свод», напишите об этой ошибке — текст выше поможет её починить.",
       });
       setStage("error");
       return;
@@ -98,12 +149,16 @@ export default function App() {
         if (!a.hasGR) setStage("confirm");
         else void runProcessing(a);
       } catch (e: any) {
+        // eslint-disable-next-line no-console
+        console.error("СВОД→1С: не удалось открыть файл", e);
         if (e?.kind === "no-sheet") {
           setError({ title: "Лист «Свод» не найден", detail: String(e.message) });
         } else {
           setError({
             title: "Не удалось открыть книгу",
-            detail: "Файл повреждён, защищён паролем или не является книгой Excel (.xlsx/.xlsm).",
+            detail:
+              "Файл повреждён, защищён паролем или не является книгой Excel (.xlsx/.xlsm).\nТехнические детали: " +
+              errText(e),
           });
         }
         setStage("error");

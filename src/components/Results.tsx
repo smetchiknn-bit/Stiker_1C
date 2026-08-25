@@ -155,6 +155,13 @@ export function SheetPreview({ o }: { o: Outcome }) {
           <i className="ml-2 h-2 w-2 rounded-sm bg-[#92D050]" /> 8–9 — служебные
         </span>
       </header>
+      {rows.length === 0 && (
+        <div className="px-6 py-12 text-center text-[14px] text-ink-faint">
+          Превью построить не удалось, но сам файл готов — скачайте его и откройте в Excel.
+          Подробности — в консоли браузера (F12).
+        </div>
+      )}
+      {rows.length > 0 && (
       <div className="sheet-scroll max-h-[430px] overflow-auto">
         <table className="w-full border-collapse font-mono text-[12px]">
           <thead className="sticky top-0 z-10">
@@ -203,6 +210,7 @@ export function SheetPreview({ o }: { o: Outcome }) {
           </tbody>
         </table>
       </div>
+      )}
       <footer className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-line bg-paper/70 px-5 py-2.5 text-[12px] text-ink-faint">
         <span>
           Итоговые строки — в конце листа: SUMPRODUCT по ценам и SUM по колонкам K/L, ниже — общий итог (ячейка L).

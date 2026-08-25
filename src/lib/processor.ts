@@ -178,10 +178,10 @@ function styleFillHex(style: any): string | undefined {
 }
 
 function findSheet(wb: ExcelJS.Workbook, name: string): ExcelJS.Worksheet | undefined {
-  const lower = name.toLowerCase();
+  const lower = name.trim().toLowerCase();
   let found: ExcelJS.Worksheet | undefined;
   wb.eachSheet((ws) => {
-    if (!found && ws.name.toLowerCase() === lower) found = ws;
+    if (!found && ws.name.trim().toLowerCase() === lower) found = ws;
   });
   return found;
 }
@@ -296,7 +296,7 @@ const HIERARCHY: { code: string; resets: string[] }[] = [
   { code: "ГР", resets: ["КЕР", "ТМЦ"] },
 ];
 
-function runNumbering(grid: Row[]): { inserted: number; nElemets: number } {
+function runNumbering(grid: Row[], inserts: number[]): { inserted: number; nElemets: number } {
   const cnt: Record<string, number> = {
     О: 0, К: 0, С: 0, У: 0, Э: 0, Л1: 0, Л2: 0, Л3: 0, Л4: 0, ГР: 0, КЕР: 0, ТМЦ: 0,
   };
@@ -336,6 +336,7 @@ function runNumbering(grid: Row[]): { inserted: number; nElemets: number } {
       cnt["ТМЦ"] = 0;
       // Rows(i+1).Insert — новая строка выше исходной строки КЕР
       grid.splice(g, 0, new Map());
+      inserts.push(g + 1); // номер новой строки в терминах Excel
       inserted++;
       const top = grid[g];
       const src = grid[g + 1];
@@ -589,6 +590,17 @@ function buildPreview(grid: Row[], levels: number[], upto: number): PreviewRow[]
   return rows;
 }
 
+/* превью не должно блокировать результат: любая ошибка → пустая таблица и запись в консоль */
+function safePreview(grid: Row[], levels: number[], upto: number): PreviewRow[] {
+  try {
+    return buildPreview(grid, levels, upto);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("СВОД→1С: не удалось построить превью листа", e);
+    return [];
+  }
+}
+
 /* ---------- главный вход ---------- */
 export async function processWorkbook(wb: ExcelJS.Workbook, a: Analysis): Promise<Outcome> {
   const E = await getExcelJS();
@@ -647,9 +659,8 @@ export async function processWorkbook(wb: ExcelJS.Workbook, a: Analysis): Promis
   let y = 0;
   for (let rr = 2; rr <= lastRowA0; rr++) if (val(grid, rr, 11) === "КЕР") y++;
   const inserts: number[] = [];
-  const numInfo = runNumberingTracked(grid, inserts);
-  void numInfo;
-  const nElemets = lastRowA0 + y + 1;
+  const numInfo = runNumbering(grid, inserts);
+  const nElemets = numInfo.nElemets; // = lastRowA0 + y + 1, как в макросе
 
   deleteColumns(grid, widths, merges, inserts);
 
@@ -676,7 +687,7 @@ export async function processWorkbook(wb: ExcelJS.Workbook, a: Analysis): Promis
     totalNum,
     diff,
     match,
-    rows: buildPreview(grid, grp.levels, Math.min(sums.totalRow, 90)),
+    rows: safePreview(grid, grp.levels, Math.min(sums.totalRow, 90)),
     cols: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     stats: {
       totalRows: nElement,
@@ -688,17 +699,4 @@ export async function processWorkbook(wb: ExcelJS.Workbook, a: Analysis): Promis
   };
 }
 
-/* обёртка над runNumbering, чтобы фиксировать позиции вставленных строк */
-function runNumberingTracked(grid: Row[], inserts: number[]): { inserted: number } {
-  const before = grid.length;
-  // временно шпионим за splice
-  const origSplice = grid.splice.bind(grid);
-  (grid as any).splice = (start: number, deleteCount: number, ...items: Row[]) => {
-    if (deleteCount === 0 && items.length > 0) inserts.push(start + 1); // Excel-строка
-    return origSplice(start, deleteCount, ...items);
-  };
-  const res = runNumbering(grid);
-  (grid as any).splice = origSplice;
-  void before;
-  return res;
-}
+

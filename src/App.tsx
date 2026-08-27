@@ -279,7 +279,7 @@ function AppInner() {
       {/* ======= шапка ======= */}
       <header className="relative z-10 border-b-2 border-ink/85 bg-paper/70">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-5 py-3.5">
-          <DonorLogo size={38} />
+          <DonorLogo size={42} />
           <div className="min-w-0">
             <p className="font-display text-[19px] font-bold leading-none tracking-tight text-ink">
               Стикер в <span className="text-green">1С</span>
@@ -298,6 +298,23 @@ function AppInner() {
 
       {/* ======= каркас: рельса · карточки · предпросмотр ======= */}
       <main className="relative z-10 mx-auto max-w-6xl px-5 pb-16 pt-7">
+        {/* заголовок главной страницы */}
+        <div className="rise mb-7">
+          <p className="label-caps">мастер · построчный перенос макроса «Стикер_1С»</p>
+          <h1 className="mt-2 font-display text-[32px] font-bold leading-[1.05] tracking-tight text-ink sm:text-[40px]">
+            Стикер в{" "}
+            <span className="relative inline-block text-green">
+              1С
+              <i aria-hidden className="absolute -bottom-0.5 left-0 -z-10 h-[9px] w-full bg-[#ffd965]/80" />
+            </span>
+          </h1>
+          <p className="mt-3 max-w-[64ch] text-[14px] leading-relaxed text-ink-soft">
+            Загрузите файл-донор — мастер пронумерует иерархию, проставит формулы и заливки, сверит
+            «Стикер» с итогом и отдаст готовый файл{" "}
+            <b className="font-mono text-[13px] text-ink">ИмяДонора_1С.xlsx</b>.
+          </p>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-[218px_minmax(0,1fr)] xl:grid-cols-[218px_minmax(0,1fr)_292px]">
           {/* рельса мастера */}
           <aside className="order-2 lg:order-1">

@@ -282,7 +282,7 @@ function AppInner() {
           <DonorLogo size={38} />
           <div className="min-w-0">
             <p className="font-display text-[19px] font-bold leading-none tracking-tight text-ink">
-              СВОД <span className="mx-1 inline-block -translate-y-px text-green">→</span> 1С
+              Стикер в <span className="text-green">1С</span>
             </p>
             <p className="mt-1 text-[11.5px] leading-none text-ink-soft">
               мастер конвертации сметного листа · перенос макроса «Стикер_1С»
@@ -392,7 +392,7 @@ function AppInner() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-5 font-mono text-[11.5px] text-ink-soft">
           <span className="inline-flex items-center gap-2">
             <DonorLogo size={22} />
-            <b className="font-display text-[12px] tracking-tight text-ink">СВОД → 1С</b>
+            <b className="font-display text-[12px] tracking-tight text-ink">Стикер в 1С</b>
             <OneCLogo size={22} />
           </span>
           <span>перенос макроса «Стикер_1С» (VBA) · React + ExcelJS</span>

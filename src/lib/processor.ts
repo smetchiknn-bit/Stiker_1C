@@ -166,6 +166,15 @@ function themeToHex(idx: number, tint?: number): string {
   return c.map((x) => Math.round(x + (target - x) * t).toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
+/* «A1» → {row, col}. Свой парсер, чтобы не зависеть от экспорта Address в ExcelJS. */
+function a1ToRC(a: string): { row: number; col: number } | null {
+  const m = /^\$?([A-Za-z]+)\$?(\d+)$/.exec(a.trim());
+  if (!m) return null;
+  let col = 0;
+  for (const ch of m[1].toUpperCase()) col = col * 26 + (ch.charCodeAt(0) - 64);
+  return { row: parseInt(m[2], 10), col };
+}
+
 function styleFillHex(style: any): string | undefined {
   const f = style?.fill;
   if (!f || f.pattern !== "solid" || !f.fgColor) return undefined;
@@ -384,7 +393,7 @@ function deleteColumns(grid: Row[], widths: any[], merges: MergeRect[], inserts:
   const newWidths: any[] = [];
   widths.forEach((w, i) => {
     const c = i + 1;
-    if (!DELETED.has(c)) newWidths[mapCol(c)] = w;
+    if (!DELETED.has(c)) newWidths[mapCol(c) - 1] = w; // 0-основанный индекс, как читает buildWorkbook
   });
   widths.length = 0;
   widths.push(...newWidths);
@@ -536,6 +545,13 @@ function buildWorkbook(
     if (w.hidden) col.hidden = true;
   });
 
+  /* Ширины колонок файла 1С (условные единицы Excel), по спецификации.
+     1=ИД 1С, 2=Структура/Статья (широкая), 3–9 — узкие; 10–12 не заданы → как у донора/по умолчанию. */
+  const COL_WIDTHS: [number, number][] = [
+    [1, 11], [2, 50], [3, 11], [4, 11], [5, 11], [6, 11], [7, 11], [8, 11], [9, 11],
+  ];
+  for (const [c, w] of COL_WIDTHS) ws.getColumn(c).width = w;
+
   grid.forEach((row, gi) => {
     const r = gi + 1;
     const lvl = levels[r] ?? 0;
@@ -632,13 +648,16 @@ export async function processWorkbook(wb: ExcelJS.Workbook, a: Analysis): Promis
   }
 
   const merges: MergeRect[] = [];
-  const rawMerges: string[] = ((ws.model as any)?.merges as string[]) ?? [];
+  const rawMerges: any[] = ((ws.model as any)?.merges as any[]) ?? [];
   for (const s of rawMerges) {
-    const parts = s.split(":");
+    const str =
+      typeof s === "string" ? s : typeof s?.range === "string" ? s.range : null;
+    if (!str) continue;
+    const parts = str.split(":");
     if (parts.length !== 2) continue;
-    const p1 = new (E as any).Address(parts[0]);
-    const p2 = new (E as any).Address(parts[1]);
-    merges.push({ r1: p1.row, c1: p1.col, r2: p2.row, c2: p2.col });
+    const p1 = a1ToRC(parts[0]);
+    const p2 = a1ToRC(parts[1]);
+    if (p1 && p2) merges.push({ r1: p1.row, c1: p1.col, r2: p2.row, c2: p2.col });
   }
 
   // заголовки (макрос пишет их в строку 1, сохраняя оформление донора)

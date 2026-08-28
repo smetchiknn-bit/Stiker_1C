@@ -1,5 +1,13 @@
+# зависимости — устанавливаются командой npm install, в Git не нужны
 node_modules/
-.next/
+
+# собранная версия — Vercel собирает сам
 dist/
+
+# служебные файлы
+*.local
+.DS_Store
+npm-debug.log*
+.next/
 build/
 *.log

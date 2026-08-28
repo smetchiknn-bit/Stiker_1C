@@ -30,6 +30,11 @@ function LogoImg({ png, svg, size, alt }: { png: string; svg: string; size: numb
       onError={() => {
         if (!failed.current) {
           failed.current = true;
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[Стикер в 1С] не найден ${baseurl + png} — показан SVG-заменитель. ` +
+              `Проверьте, что файл закоммичен в папку public/ репозитория.`
+          );
           setSrc(baseurl + svg);
         }
       }}
